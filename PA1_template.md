@@ -5,8 +5,7 @@ Guillermo Pachón
 
 ## Loading and preprocessing the data
 
-Fist the data must be loaded. For convenience use the variable *activity* to store the data.  
-Then use **dim** to show the dimensions of *activity*.
+1. Load the data.
 
 
 ```r
@@ -17,11 +16,6 @@ dim(activity)
 ```
 ## [1] 17568     3
 ```
-
-As you can see, 17568 rows with 3 columns (steps, date, interval) where loaded.
-
-The data has the following structure:
-
 
 ```r
 summary(activity)
@@ -38,7 +32,12 @@ summary(activity)
 ##  NA's   :2304     (Other)   :15840
 ```
 
-Aditionaly we need a correct format for *date* column:
+As you can see, 17568 rows with 3 columns (steps, date, interval) where loaded.
+
+2. Process/transform the data (if necessary) into a format suitable for your analysis.
+
+Update the format for *date* column:
+
 
 ```r
 activity$date <- as.Date(as.character(activity$date), "%Y-%m-%d")
@@ -51,9 +50,14 @@ Lets ignore the missing values.
 
 ```r
 activity1 <- na.omit(activity)
+dim(activity1)
 ```
 
-Calculate the total number of steps taken per day.  
+```
+## [1] 15264     3
+```
+
+1. Calculate the total number of steps taken per day.
 
 
 ```r
@@ -66,7 +70,7 @@ summary(stepsByDay, digits=5)
 ##      41    8841   10765   10766   13294   21194
 ```
 
-Then make a histogram.
+2. Make a histogram of the total number of steps taken each day.
 
 
 ```r
@@ -76,7 +80,9 @@ abline(v = median(stepsByDay), lwd = 1, col = "blue")
 legend("topright", lwd = 1, col = c("red", "blue"), legend = c("Mean", "Median"))
 ```
 
-![](PA1_template_files/figure-html/unnamed-chunk-6-1.png)<!-- -->
+![](PA1_template_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
+
+3. Calculate and report the mean and median of the total number of steps taken per day.
 
 The mean (10766) and the median (10765) 
 are shown in the same position.
@@ -98,7 +104,7 @@ Next calculate the 5-minute interval that contains the max-average number of ste
 MaxSBI <- StepsByInterval[StepsByInterval$steps == max(StepsByInterval$steps),]$interval
 ```
 
-Finally make the plot.
+1. Make a time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
 
 
 ```r
@@ -108,7 +114,9 @@ abline(v = MaxSBI, lwd = 1, col = "red")
 legend("topright", lwd = 1, col = c("red"), legend = c(paste("Max = ", MaxSBI)))
 ```
 
-![](PA1_template_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
+![](PA1_template_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
+
+2. Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
 
 As the graphic show, the 5-minute interval, on average across all the days in the dataset, 
 that contains the maximum number of steps is the **835**.
@@ -140,15 +148,17 @@ nrow(activity[is.na(activity$steps),])
 ```
 
 2. Devise a strategy for filling in all of the missing values in the dataset.
-Use the mean for that 5-minute interval for filling the missing values:
 
-For this job I use this function:
+Stretegy selected: *Use the mean for that 5-minute interval for filling the missing values:*
+
+Use this custom function:
 
 
 ```r
 MyFillNA <- function(act, meanSBI) {
     for(i in 1:nrow(act)) {
         if (is.na(act$steps[i])) {
+            ## If step is NA, assing mean steps for the corresponding interval
             act$steps[i] = meanSBI[meanSBI$interval == act[i,]$interval, ]$steps
         }
     }
@@ -161,6 +171,14 @@ MyFillNA <- function(act, meanSBI) {
 
 ```r
 activity2 <- MyFillNA(activity, StepsByInterval)
+dim(activity2)
+```
+
+```
+## [1] 17568     3
+```
+
+```r
 summary(activity2)
 ```
 
@@ -177,12 +195,14 @@ summary(activity2)
 4. Make a histogram of the total number of steps taken each day and Calculate and report the mean
 and median total number of steps taken per day.
 
+Calculate the total number of steps taken per day.
+
 
 ```r
 stepsByDay2 <- with(activity2, tapply(steps, as.factor(date), sum))
 ```
 
-Then make a histogram.
+Make the histogram.
 
 
 ```r
@@ -192,13 +212,36 @@ abline(v = median(stepsByDay2), lwd = 1, col = "blue")
 legend("topright", lwd = 1, col = c("red", "blue"), legend = c("Mean", "Median"))
 ```
 
-![](PA1_template_files/figure-html/unnamed-chunk-15-1.png)<!-- -->
+![](PA1_template_files/figure-html/unnamed-chunk-14-1.png)<!-- -->
 
 The mean (10766) and the median (10766) 
 are shown in the same position.
 
 **These values does NOT differ from the estimates from the first part of the assignment**. Remember the values: mean = 10766, and median = 10765. 
 
-The impact of imputing missing data on the estimates of the total daily number of steps is NONE.
+The impact of imputing missing data on the estimates of the total daily number of steps is **NONE**.
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+Using the dataset with the fillen-in missing values (*activity2*).
+
+1. Create a new factor variable in the dataset with two levels indicating whether a given date is a weekday or weekend day.
+
+
+```r
+activity2$isWeekend <- format(activity2$date, "%u") %in% c(6, 7)
+activity2$DayType <- factor(activity2$isWeekend,labels=c("weekend","weekday"))
+StepsByInterval2 <- aggregate(steps ~ interval + DayType, data = activity2, mean)
+```
+
+2. Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis).
+
+
+```r
+library(ggplot2)
+g <- ggplot(StepsByInterval2, aes(interval, steps)) + geom_line() + facet_grid(. ~ DayType)
+g + labs(title = "Differences in Activity Patterns Between Weekdays and Weekends", x = "5-minute Interval", y = "Average Steps")
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-16-1.png)<!-- -->
+
